@@ -9,21 +9,7 @@ import streamlit as st
 from src.analysis.eda_engine import compute_channel_totals_df, compute_kpi_metrics
 from src.api.datalab_client import DataLabApiClient
 from src.api.mock_data import generate_mock_search_data, generate_mock_trend_data
-from src.api.search_client import SearchApiClient
-
-
-ITEM_COLUMNS = [
-    "keyword",
-    "channel_id",
-    "channel_name",
-    "rank",
-    "title",
-    "description",
-    "link",
-    "pub_date",
-    "author_or_source",
-    "extra",
-]
+from src.api.search_client import ITEM_COLUMNS, SearchApiClient
 
 
 def get_analysis_data() -> dict[str, Any] | None:

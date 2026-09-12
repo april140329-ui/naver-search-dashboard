@@ -1,9 +1,19 @@
 from __future__ import annotations
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 import pandas as pd
 from src.api.base import BaseApiClient, NaverApiError
 from src.config.settings import SEARCH_CHANNELS, ChannelConfig, get_channel_endpoint
 from src.utils.text_cleaner import clean_html_tags, parse_naver_pubdate
+
+# 검색어 x 채널 조합을 동시에 호출할 때 사용할 최대 워커 수
+MAX_FETCH_WORKERS = 8
+
+# 정규화된 검색 결과 DataFrame의 공통 컬럼 스키마 (다른 모듈에서도 재사용)
+ITEM_COLUMNS = [
+    "keyword", "channel_id", "channel_name", "rank", "title",
+    "description", "link", "pub_date", "author_or_source", "extra",
+]
 
 
 class SearchApiClient(BaseApiClient):
@@ -52,7 +62,8 @@ class SearchApiClient(BaseApiClient):
     ) -> tuple[pd.DataFrame, dict[str, dict[str, int]]]:
         """
         다중 키워드 및 다중 채널에 대해 일괄 검색을 수행하고 정제된 DataFrame과 채널별 총 검색량(total)을 반환합니다.
-        
+        검색어x채널 조합은 서로 독립적인 API 호출이므로 스레드풀로 동시에 요청해 전체 수집 시간을 단축합니다.
+
         Returns:
             df: 모든 검색 결과가 정규화된 판다스 데이터프레임
             totals: {keyword: {channel_id: total_count}} 형태의 총 검색량 메타데이터
@@ -61,45 +72,65 @@ class SearchApiClient(BaseApiClient):
         totals: dict[str, dict[str, int]] = {}
         self.errors = []
 
-        for kw in keywords:
-            kw = kw.strip()
-            if not kw:
-                continue
+        clean_keywords = [kw.strip() for kw in keywords if kw.strip()]
+        for kw in clean_keywords:
             totals[kw] = {}
 
+        jobs: list[tuple[str, ChannelConfig]] = []
+        for kw in clean_keywords:
             for ch_id in channel_ids:
                 cfg = SEARCH_CHANNELS.get(ch_id)
-                if not cfg:
-                    continue
+                if cfg:
+                    jobs.append((kw, cfg))
 
+        if not jobs:
+            return pd.DataFrame(columns=ITEM_COLUMNS), totals
+
+        worker_count = min(MAX_FETCH_WORKERS, len(jobs))
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            future_to_job = {
+                executor.submit(
+                    self.fetch_channel,
+                    channel_id=cfg.id,
+                    keyword=kw,
+                    display=display_per_channel,
+                    sort=cfg.default_sort if cfg.id == "local" else (sort if cfg.supports_sort else None),
+                ): (kw, cfg)
+                for kw, cfg in jobs
+            }
+
+            for future in as_completed(future_to_job):
+                kw, cfg = future_to_job[future]
                 try:
-                    res = self.fetch_channel(
-                        channel_id=ch_id,
-                        keyword=kw,
-                        display=display_per_channel,
-                        sort=cfg.default_sort if ch_id == "local" else (sort if cfg.supports_sort else None),
-                    )
+                    res = future.result()
                     total_count = res.get("total", 0)
-                    totals[kw][ch_id] = total_count
+                    totals[kw][cfg.id] = total_count
 
                     raw_items = res.get("items", [])
                     for idx, item in enumerate(raw_items, start=1):
-                        normalized = self._normalize_item(item, ch_id, cfg.name, kw, idx)
+                        normalized = self._normalize_item(item, cfg.id, cfg.name, kw, idx)
                         all_items.append(normalized)
 
                 except NaverApiError as e:
-                    totals[kw][ch_id] = 0
+                    totals[kw][cfg.id] = 0
                     # 오류를 분석용 검색 결과 행에 섞지 않고 별도 상태로 보관합니다.
                     self.errors.append({
                         "scope": f"{kw} · {cfg.name}",
                         "message": str(e),
                     })
 
-        columns = [
-            "keyword", "channel_id", "channel_name", "rank", "title",
-            "description", "link", "pub_date", "author_or_source", "extra",
-        ]
-        df = pd.DataFrame(all_items, columns=columns)
+        # 스레드 완료 순서가 비결정적이므로 결과를 일관된 순서(키워드→채널→순위)로 정렬합니다.
+        keyword_order = {kw: idx for idx, kw in enumerate(clean_keywords)}
+        channel_order = {ch_id: idx for idx, ch_id in enumerate(channel_ids)}
+        all_items.sort(
+            key=lambda row: (
+                keyword_order.get(row["keyword"], 0),
+                channel_order.get(row["channel_id"], 0),
+                row["rank"],
+            )
+        )
+
+        df = pd.DataFrame(all_items, columns=ITEM_COLUMNS)
         return df, totals
 
     def _normalize_item(

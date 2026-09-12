@@ -8,7 +8,7 @@ from src.analysis.text_mining import extract_top_words
 from src.config.settings import SEARCH_CHANNELS
 
 
-def _word_chart(words_df: pd.DataFrame, title: str) -> None:
+def _word_bar_chart(words_df: pd.DataFrame, title: str) -> None:
     chart = px.bar(
         words_df.iloc[::-1],
         x="빈도수",
@@ -21,6 +21,39 @@ def _word_chart(words_df: pd.DataFrame, title: str) -> None:
     )
     chart.update_layout(height=500, coloraxis_showscale=False, margin=dict(l=10, r=10, t=50, b=10))
     st.plotly_chart(chart, width="stretch")
+
+
+def _word_treemap(words_df: pd.DataFrame, title: str) -> None:
+    """빈도에 비례한 타일 크기로 단어를 배치하는 워드클라우드 스타일 트리맵."""
+    chart = px.treemap(
+        words_df,
+        path=[px.Constant("전체 연관어"), "단어"],
+        values="빈도수",
+        color="빈도수",
+        color_continuous_scale=["#eaf7f0", "#03C75A", "#00693a"],
+        title=title,
+    )
+    chart.update_traces(
+        textinfo="label+value",
+        textfont_size=16,
+        marker=dict(cornerradius=6),
+    )
+    chart.update_layout(height=500, margin=dict(l=10, r=10, t=50, b=10), coloraxis_showscale=False)
+    st.plotly_chart(chart, width="stretch")
+
+
+def _render_word_visual(words_df: pd.DataFrame, title: str, view_key: str) -> None:
+    view = st.radio(
+        "시각화 방식",
+        ["막대그래프", "트리맵(워드클라우드)"],
+        horizontal=True,
+        key=view_key,
+        label_visibility="collapsed",
+    )
+    if view == "막대그래프":
+        _word_bar_chart(words_df, title)
+    else:
+        _word_treemap(words_df, title)
 
 
 def render_text_insights_section(df_items: pd.DataFrame, keywords: list[str]) -> None:
@@ -61,7 +94,7 @@ def render_text_insights_section(df_items: pd.DataFrame, keywords: list[str]) ->
         else:
             chart_col, table_col = st.columns([3, 2])
             with chart_col:
-                _word_chart(words_df, f"상위 {len(words_df)}개 연관 표현")
+                _render_word_visual(words_df, f"상위 {len(words_df)}개 연관 표현", view_key="word_view_main")
             with table_col:
                 ranking = words_df.copy()
                 ranking.insert(0, "순위", range(1, len(ranking) + 1))

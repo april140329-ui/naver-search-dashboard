@@ -13,6 +13,26 @@ KOREAN_STOPWORDS = {
 }
 
 
+def tokenize_weighted_text(
+    titles: list[str],
+    descriptions: list[str],
+    title_weight: int = 2,
+    exclude_words: set[str] | None = None,
+) -> list[str]:
+    """제목(기본 가중치 2배)과 설명을 합쳐 불용어를 제외한 토큰(2글자 이상)을 추출합니다.
+
+    제목과 채널 심층 EDA의 연관어 분석이 동일한 토큰화 규칙을 공유하도록 단일화한 진입점입니다.
+    """
+    full_text = " ".join(titles * title_weight + descriptions)
+    tokens = re.findall(r"[가-힣a-zA-Z0-9]{2,}", full_text.lower())
+    excluded = {word.lower() for word in (exclude_words or set())}
+    return [
+        token
+        for token in tokens
+        if token not in KOREAN_STOPWORDS and token not in excluded and not token.isdigit()
+    ]
+
+
 def extract_top_words(
     df_items: pd.DataFrame,
     keyword_filter: str | None = None,
@@ -31,20 +51,11 @@ def extract_top_words(
     if channel_filter and channel_filter != "전체":
         target_df = target_df[target_df["channel_id"] == channel_filter]
 
-    # 제목(가중치 2) + 설명(가중치 1) 합산
     titles = target_df["title"].dropna().astype(str).tolist()
     descriptions = target_df["description"].dropna().astype(str).tolist()
-
-    full_text = " ".join(titles * 2 + descriptions)
-
-    # 한글 및 영문 단어 추출 (2글자 이상)
-    tokens = re.findall(r"[가-힣a-zA-Z0-9]{2,}", full_text.lower())
-    excluded = {word.lower() for word in (exclude_words or [])}
-    cleaned_tokens = [
-        token
-        for token in tokens
-        if token not in KOREAN_STOPWORDS and token not in excluded and not token.isdigit()
-    ]
+    cleaned_tokens = tokenize_weighted_text(
+        titles, descriptions, exclude_words=set(exclude_words or [])
+    )
 
     if ngram_size == 2:
         cleaned_tokens = [

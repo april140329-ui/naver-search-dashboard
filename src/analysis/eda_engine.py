@@ -1,18 +1,9 @@
 from __future__ import annotations
-import re
 from collections import Counter
 from typing import Any
 import pandas as pd
+from src.analysis.text_mining import tokenize_weighted_text
 from src.config.settings import SEARCH_CHANNELS
-
-# 한국어 텍스트 분석 불용어
-KOREAN_STOPWORDS = {
-    "있다", "하다", "되다", "이다", "같다", "대해", "위해", "통해", "관련",
-    "대한", "통한", "이", "그", "저", "것", "수", "등", "및", "더", "때",
-    "내", "중", "제", "개", "점", "전", "후", "이번", "지난", "모든",
-    "그리고", "하지만", "그러나", "또한", "또는", "경우", "모두", "어떤",
-    "네이버", "검색", "결과", "정보", "확인", "보기", "바로가기", "더보기",
-}
 
 DAYS_OF_WEEK = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
 
@@ -258,9 +249,9 @@ def compute_channel_word_freq_table(df: pd.DataFrame, top_n: int = 20) -> pd.Dat
     if df.empty:
         return pd.DataFrame()
 
-    full_txt = " ".join(df["title"].dropna().tolist() * 2 + df["description"].dropna().tolist())
-    tokens = re.findall(r"[가-힣a-zA-Z0-9]{2,}", full_txt)
-    words = [t.lower() for t in tokens if t.lower() not in KOREAN_STOPWORDS and not t.isdigit()]
+    titles = df["title"].dropna().astype(str).tolist()
+    descriptions = df["description"].dropna().astype(str).tolist()
+    words = tokenize_weighted_text(titles, descriptions)
 
     if not words:
         return pd.DataFrame()
