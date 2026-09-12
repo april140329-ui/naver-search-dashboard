@@ -6,6 +6,7 @@ import streamlit as st
 
 from src.config.settings import BASE_DIR
 from src.pages.channels import render_channels_page
+from src.pages.complaints import render_complaints_page
 from src.pages.explorer import render_explorer_page
 from src.pages.overview import render_overview_page
 from src.pages.settings_page import render_settings_page
@@ -35,6 +36,7 @@ def main() -> None:
         st.Page(render_trends_page, title="검색 트렌드", icon="📈", url_path="trends"),
         st.Page(render_channels_page, title="채널 분석", icon="🧭", url_path="channels"),
         st.Page(render_text_insights_page, title="텍스트", icon="🔠", url_path="text-insights"),
+        st.Page(render_complaints_page, title="민원 분석", icon="🙋", url_path="complaints"),
         st.Page(render_explorer_page, title="데이터 탐색", icon="🔎", url_path="data-explorer"),
         st.Page(render_settings_page, title="설정", icon="⚙️", url_path="settings"),
     ]

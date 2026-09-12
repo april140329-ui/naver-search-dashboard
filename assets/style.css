@@ -5,7 +5,7 @@
     --naver: #03c75a;
     --naver-dark: #00a94f;
     --ink: #172033;
-    --muted: #64748b;
+    --muted: #5b6779;
     --line: #e5eaf0;
     --surface: #f7f9fb;
 }
@@ -14,10 +14,56 @@ html, body, [class*="css"] {
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* 본문 가독성: 기본 글자 크기와 행간을 넉넉하게 */
 .block-container {
-    max-width: 1500px;
+    max-width: 1360px;
     padding-top: 2rem;
     padding-bottom: 4rem;
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+/* 섹션 제목 위아래 간격을 확보해 화면 구획을 명확히 구분 */
+.block-container h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 2.4rem 0 0.4rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--line);
+}
+
+.block-container h3 {
+    font-size: 1.18rem;
+    font-weight: 650;
+    margin: 1.8rem 0 0.5rem;
+}
+
+.block-container h4,
+.block-container h5 {
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 1.2rem 0 0.35rem;
+}
+
+/* 설명 캡션은 본문보다 한 톤 낮추되 충분히 읽히도록 */
+div[data-testid="stCaptionContainer"] p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* 안내 배너를 차분하게 정리 */
+div[data-testid="stAlert"] {
+    border-radius: 10px;
+    font-size: 0.92rem;
+    padding: 0.75rem 1rem;
+}
+
+/* 차트와 표 아래 여백을 통일 */
+div[data-testid="stPlotlyChart"],
+div[data-testid="stDataFrame"] {
+    margin-bottom: 0.6rem;
 }
 
 .page-header {
@@ -79,11 +125,20 @@ div[data-testid="stMetric"] {
     border: 1px solid var(--line);
     border-radius: 14px;
     box-shadow: 0 4px 18px rgba(23, 32, 51, 0.04);
-    min-height: 126px;
+    min-height: 118px;
     padding: 1rem 1.1rem;
 }
 
-div[data-testid="stMetric"] label { color: var(--muted); }
+div[data-testid="stMetric"] label {
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+div[data-testid="stMetricValue"] {
+    font-size: 1.7rem;
+    letter-spacing: -0.02em;
+}
 
 .insight-card {
     background: linear-gradient(145deg, #f7faf8, #fff);

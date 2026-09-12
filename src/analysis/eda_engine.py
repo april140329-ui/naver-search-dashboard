@@ -235,20 +235,24 @@ def compute_channel_region_stats(df: pd.DataFrame, top_n: int = 15) -> pd.DataFr
 
     다른 채널은 주소 데이터가 없어 빈 DataFrame을 반환하며, 이 경우 UI에서 안내만 표시합니다.
     """
-    if df.empty or "extra" not in df.columns:
+    if df.empty:
         return pd.DataFrame()
 
-    def _region_of(extra: Any) -> str:
-        info = extra if isinstance(extra, dict) else {}
-        raw_address = info.get("roadAddress") or info.get("address") or ""
+    def _region_of(row: Any) -> str:
+        info = row.get("extra") if isinstance(row.get("extra"), dict) else {}
+        # 지역 채널은 API 응답의 description이 비어 있어 주소가 description 컬럼으로 들어오기도 하므로
+        # extra의 주소 필드를 우선 보고, 없으면 description을 대체 주소로 사용합니다.
+        raw_address = info.get("roadAddress") or info.get("address") or row.get("description") or ""
         address = clean_html_tags(str(raw_address))
         if not address:
             return ""
         parts = address.split()
         # 대개 "시/도 + 시/군/구" 두 토큰까지가 지역 단위로 의미 있는 구간입니다.
+        if not parts[0].endswith(("시", "도", "특별시", "광역시", "특별자치시", "특별자치도")):
+            return ""
         return " ".join(parts[:2]) if len(parts) >= 2 else parts[0]
 
-    regions = df["extra"].apply(_region_of)
+    regions = df.apply(_region_of, axis=1)
     regions = regions[regions != ""]
     if regions.empty:
         return pd.DataFrame()
