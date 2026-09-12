@@ -1,24 +1,16 @@
 from __future__ import annotations
 
 from src.components.complaint_view import render_complaint_section
-from src.components.page_shell import (
-    prepare_analysis_page,
-    render_data_status,
-    render_empty_state,
-    render_page_header,
-)
+from src.components.page_shell import render_page_header
+from src.components.sidebar import render_sidebar
 
 
 def render_complaints_page() -> None:
     render_page_header(
-        "민원 감정 분석",
-        "수집한 글을 민원 유형과 심각도로 분류해 어떤 고충이 어디에 몰려 있는지 확인합니다.",
+        "민원 요구·감정 분석",
+        "민원 본문에 문제·요구·감정·감정대상 라벨 초안을 붙여 이슈 구간과 평시의 차이를 비교합니다.",
         eyebrow="COMPLAINT INSIGHT",
     )
-    controls, data = prepare_analysis_page()
-    if not data:
-        render_empty_state(controls)
-        return
-
-    render_data_status(data)
-    render_complaint_section(data["df_items"], data["keywords"])
+    # 이 화면은 업로드한 민원 표본만 사용하므로 검색 분석 실행 여부와 무관하게 동작합니다.
+    render_sidebar()
+    render_complaint_section()

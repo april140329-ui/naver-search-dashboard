@@ -23,3 +23,10 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# 민원 원문 데이터 (개인정보·민감 피해사례 포함 가능 · 저장소에 올리지 않음)
+*민원*.csv
+*민원*.xlsx
+*표본*.csv
+data/
+complaints/
