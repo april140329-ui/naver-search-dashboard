@@ -1,0 +1,110 @@
+# 📊 네이버 마켓 인사이트 EDA 대시보드 (Naver Search Market Insight)
+
+네이버 클라우드 플랫폼 **NAVER API HUB** 및 **네이버 개발자 센터** 공식 API를 기반으로, 다중 검색어에 대한 **8대 검색 채널**(뉴스, 블로그, 웹문서, 이미지, 지식iN, 지역, 카페글, 백과사전)과 **데이터랩 트렌드 시계열 데이터**를 수집하여 탐색적 데이터 분석(EDA)을 수행하는 Streamlit 멀티페이지 대시보드입니다.
+
+---
+
+## 🚀 빠른 시작 (실행 방법)
+
+### 방법 1. 원클릭 실행 (추천)
+폴더 내의 **`run_dashboard.bat`** 파일을 더블클릭하면 가상환경 활성화 및 브라우저 실행까지 한 번에 완료됩니다.
+
+### 방법 2. 터미널 명령어로 실행
+```bash
+# uv 가상환경 기반 Streamlit 실행
+uv run streamlit run app.py
+
+# 또는 가상환경 python 직접 실행
+.venv\Scripts\python.exe -m streamlit run app.py
+```
+실행 후 브라우저에서 **[http://localhost:8501](http://localhost:8501)** 에 접속합니다.
+
+---
+
+## 🔑 네이버 API 키 설정 (`.env`)
+
+프로젝트 루트의 `.env` 파일에 발급받으신 네이버 API 인증 정보를 입력합니다:
+
+```env
+# NAVER API HUB (https://api.ncloud-docs.com/docs/naver-api-hub-overview)
+# 또는 네이버 개발자 센터 (https://developers.naver.com)
+NAVER_CLIENT_ID=your_client_id_here
+NAVER_CLIENT_SECRET=your_client_secret_here
+```
+> **팁**: 상단 **설정** 페이지에서 API 키를 입력하고 로컬 `.env`에 저장할 수 있습니다.
+> API 키가 없을 때는 분석 패널의 **데모 데이터 사용**을 켜고 실행하면 전체 화면을 체험할 수 있습니다.
+
+---
+
+## ✨ 핵심 기능
+
+1. **콤마(`,`) 구분 다중 키워드 분석**:
+   - `아이폰, 갤럭시, 픽셀` 등 여러 키워드를 입력하여 한 화면에서 비교 분석.
+2. **8대 공식 검색 채널 통합 수집**:
+   - 📰 **뉴스**: 최신 보도자료 및 미디어 동향
+   - 📝 **블로그**: 실사용 리뷰 및 바이럴 콘텐츠
+   - 🌐 **웹문서**: 공식 웹사이트 및 기술 스펙
+   - 🖼️ **이미지**: 제품 렌더링 및 썸네일 포토 갤러리
+   - 💡 **지식iN**: 소비자 궁금증 및 Q&A
+   - 📍 **지역(플레이스)**: 공식 매장, 쇼룸 및 전화번호 정보
+   - ☕ **카페글**: 커뮤니티 반응 및 체감 여론
+   - 📚 **백과사전**: 정의 및 역사적 배경 개요
+3. **네이버 데이터랩 트렌드 시계열 분석**:
+   - 시작일 / 종료일 기간 선택 (Date Picker)
+   - 시간 단위 설정 (일간: `date`, 주간: `week`, 월간: `month`)
+   - 키워드 간 검색 관심도 상호 상관계수(Correlation) 분석
+4. **목적별 멀티페이지 분석**:
+   - 종합, 검색 트렌드, 채널 분석, 텍스트 인사이트, 데이터 탐색, 설정 및 상태 화면
+5. **명확한 데이터 기준**:
+   - API 검색 결과 추정량과 실제 수집 표본을 별도 KPI로 표시
+   - 일부 채널 오류가 발생해도 성공한 검색 및 트렌드 데이터는 유지
+   - 데이터랩의 0~100 상대지수 정의와 지역 검색 최대 5건 제한 표시
+6. **텍스트 마이닝 인사이트**:
+   - 문서 제목 및 설명문에서 한글 불용어를 제거하고 연관 빈출 키워드(Top N) 분석
+   - 입력 검색어 제외, 단어/2어절 분석, 검색어별 특징 단어 비교
+7. **데이터 내보내기 (Export)**:
+   - 각 채널별 원본 데이터를 **CSV (한글 깨짐 방지 UTF-8-BOM)** 및 **Excel(.xlsx)** 파일로 즉시 다운로드
+
+---
+
+## 📁 프로젝트 폴더 구조
+
+```
+naver-search-dashboard/
+├── .venv/                         # uv 가상환경 (Python)
+├── .env                           # 네이버 API 키 보관 파일 (gitignore 등록)
+├── .env.example                   # 환경변수 템플릿 파일
+├── .gitignore                     # 보안 및 캐시 파일 제외 설정
+├── pyproject.toml                 # uv 프로젝트 의존성 설정
+├── app.py                         # Streamlit 대시보드 메인 엔트리포인트
+├── run_dashboard.bat              # 윈도우 원클릭 실행 배치 파일
+├── README.md                      # 프로젝트 설명서
+├── assets/
+│   └── style.css                  # 모던 테마 및 커스텀 카드/배지 CSS
+├── src/
+│   ├── config/
+│   │   └── settings.py            # .env 로더, API 키 검증 및 8대 채널 명세 정의
+│   ├── api/
+│   │   ├── base.py                # 네이버 API 공통 HTTP 통신 및 에러 핸들러
+│   │   ├── search_client.py       # 8대 검색 채널 수집기
+│   │   ├── datalab_client.py      # 데이터랩 다중 키워드 시계열 트렌드 API 수집기
+│   │   └── mock_data.py           # 키 미입력/한도 초과 시 모의 시뮬레이션 데이터
+│   ├── analysis/
+│   │   ├── eda_engine.py          # 채널별 점유율, 5대 KPI 카드 지표, 기술통계, 상관계수 분석
+│   │   └── text_mining.py         # 문서 제목/설명문 불용어 정제 및 상위 빈출 단어(Top N) 분석
+│   ├── components/
+│   │   ├── sidebar.py             # 최대 5개 검색어, 기간, 채널, 실행 모드를 묶은 공통 분석 폼
+│   │   ├── page_shell.py          # 페이지 헤더, 분석 상태, 빈 화면 공통 UI
+│   │   ├── metrics_view.py        # 추정 검색 결과와 실제 수집 표본을 분리한 KPI 카드
+│   │   ├── trend_charts.py        # 추이, 증감, 피크, 상관관계 탭
+│   │   ├── channel_views.py       # 선택한 단일 채널의 심층 분석과 채널별 특화 미리보기
+│   │   └── text_insights.py       # 연관 빈출 단어 수평 막대 차트 및 랭킹 테이블
+│   ├── pages/                      # 종합·트렌드·채널·텍스트·탐색·설정 화면
+│   ├── services/
+│   │   └── analysis_service.py    # 명시적 실행, 부분 오류 보존, 페이지 공용 세션 상태
+│   └── utils/
+│       ├── text_cleaner.py        # HTML 태그(<b> 등) 및 특수문자 제거 정규화
+│       └── exporter.py            # 한글 깨짐 방지 UTF-8-BOM CSV 및 Excel 다운로드 포맷터
+└── tests/
+    └── test_pipeline.py           # 전체 수집 및 EDA 파이프라인 무결성 검증 스크립트
+```

@@ -1,0 +1,25 @@
+# 가상환경 및 캐시
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# 환경 변수 및 시크릿 (예시 템플릿 파일은 제외)
+.env
+.env.*
+!.env.example
+
+# Streamlit
+.streamlit/
+
+# 데이터 및 로그
+*.parquet
+*.csv
+*.log
+
+# IDE 및 OS 임시 파일
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
