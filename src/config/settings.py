@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 from dotenv import load_dotenv
@@ -9,6 +10,14 @@ from dotenv import set_key
 # .env 파일 로드 (루트 디렉토리 기준)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
+
+
+def get_app_version() -> str:
+    """pyproject.toml에 기입된 배포 버전을 조회합니다 (배포 시 버전 확인용 단일 소스)."""
+    try:
+        return version("naver-search-dashboard")
+    except PackageNotFoundError:
+        return "dev"
 
 
 @dataclass

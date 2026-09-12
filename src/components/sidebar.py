@@ -5,7 +5,7 @@ from typing import Any
 
 import streamlit as st
 
-from src.config.settings import SEARCH_CHANNELS, get_api_credentials
+from src.config.settings import SEARCH_CHANNELS, get_api_credentials, get_app_version
 
 
 def render_sidebar() -> dict[str, Any]:
@@ -69,6 +69,7 @@ def render_sidebar() -> dict[str, Any]:
     if len(keywords) > 5:
         st.sidebar.error(f"현재 {len(keywords)}개입니다. 검색어를 5개 이하로 줄여 주세요.")
     st.sidebar.caption("화면 이동만으로 API가 다시 호출되지는 않습니다.")
+    st.sidebar.caption(f"NAVER Insight v{get_app_version()}")
 
     return {
         "keywords": keywords,

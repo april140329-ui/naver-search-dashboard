@@ -4,7 +4,7 @@ import streamlit as st
 
 from src.api.search_client import SearchApiClient
 from src.components.page_shell import render_page_header
-from src.config.settings import get_api_credentials, save_api_credentials_to_env
+from src.config.settings import get_api_credentials, get_app_version, save_api_credentials_to_env
 
 
 def render_settings_page() -> None:
@@ -15,13 +15,14 @@ def render_settings_page() -> None:
     )
     credentials = get_api_credentials()
 
-    status1, status2, status3 = st.columns(3)
+    status1, status2, status3, status4 = st.columns(4)
     status1.metric("API 상태", "등록됨" if credentials["is_configured"] else "미등록")
     connection_type = "미설정"
     if credentials["is_configured"]:
         connection_type = "API HUB" if credentials["is_hub"] else "Developers"
     status2.metric("연결 유형", connection_type)
     status3.metric("현재 분석", "있음" if st.session_state.get("analysis_data") else "없음")
+    status4.metric("배포 버전", f"v{get_app_version()}", help="pyproject.toml의 version 필드 기준입니다.")
 
     left, right = st.columns([3, 2])
     with left:
