@@ -9,9 +9,35 @@ from src.analysis.eda_engine import (
     compute_channel_crosstab_source,
     compute_channel_crosstab_dow,
     compute_channel_pivot_table,
+    compute_channel_region_stats,
+    compute_channel_source_ranking,
     compute_channel_word_freq_table,
 )
 from src.config.settings import SEARCH_CHANNELS
+
+
+def _source_summary_text(ranking_df: pd.DataFrame, total_docs: int) -> str:
+    """출처 Top N 랭킹표를 근거로 한 줄 자연어 요약을 생성합니다."""
+    if ranking_df.empty or total_docs == 0:
+        return "출처 데이터가 충분하지 않아 요약을 생성할 수 없습니다."
+    top = ranking_df.iloc[0]
+    top3_share = round(ranking_df.head(3)["비중(%)"].sum(), 1)
+    return (
+        f"전체 {total_docs:,}건 중 **{top['출처']}**가 {top['문서건수']:,}건({top['비중(%)']:.1f}%)으로 "
+        f"가장 비중이 높고, 상위 3개 출처가 전체의 {top3_share:.1f}%를 차지합니다."
+    )
+
+
+def _region_summary_text(region_df: pd.DataFrame) -> str:
+    """지역 분포 랭킹표를 근거로 한 줄 자연어 요약을 생성합니다."""
+    if region_df.empty:
+        return "주소 데이터가 없어 지역 분석을 생성할 수 없습니다."
+    top = region_df.iloc[0]
+    top3_share = round(region_df.head(3)["비중(%)"].sum(), 1)
+    return (
+        f"수집된 장소 중 **{top['지역']}** 지역이 {top['장소수']}건({top['비중(%)']:.1f}%)으로 가장 많고, "
+        f"상위 3개 지역이 전체의 {top3_share:.1f}%를 차지합니다."
+    )
 
 
 def render_channel_deep_dive_tab(channel_id: str, raw_df: pd.DataFrame) -> None:
@@ -110,9 +136,12 @@ def render_channel_deep_dive_tab(channel_id: str, raw_df: pd.DataFrame) -> None:
 
     g_col3, g_col4 = st.columns([1, 1])
 
-    # 3. 주요 출처 / 언론사 / 작성자 Top 15 수평 막대 차트
+    # 3. 주요 출처 / 언론사 / 작성자 Top 15 수평 막대 차트 + 순위 목록
     with g_col3:
         st.markdown("##### ③ 주요 출처/언론사 Top 15 분포 (Horizontal Bar)")
+        source_ranking = compute_channel_source_ranking(df, top_n=15)
+        st.caption(_source_summary_text(source_ranking, len(df)))
+
         top_src_df = (
             df[df["작성출처"] != "기타/미상"]
             .groupby(["작성출처", "keyword"])
@@ -136,8 +165,12 @@ def render_channel_deep_dive_tab(channel_id: str, raw_df: pd.DataFrame) -> None:
             labels={"건수": "문서 건수", "작성출처": "출처/매체명", "keyword": "키워드"},
             template="plotly_white",
         )
-        fig_src.update_layout(height=370, margin=dict(l=10, r=10, t=40, b=10))
+        fig_src.update_layout(height=330, margin=dict(l=10, r=10, t=40, b=10))
         st.plotly_chart(fig_src, width="stretch", key=f"{channel_id}_fig_src")
+
+        if not source_ranking.empty:
+            with st.expander("Top 15 출처 순위 목록 보기", expanded=False):
+                st.dataframe(source_ranking, width="stretch")
 
     # 4. 제목 글자 수 vs 본문 글자 수 상관 산점도
     with g_col4:
@@ -171,6 +204,39 @@ def render_channel_deep_dive_tab(channel_id: str, raw_df: pd.DataFrame) -> None:
         )
         fig_hm.update_layout(height=260, margin=dict(l=10, r=10, t=40, b=10))
         st.plotly_chart(fig_hm, width="stretch", key=f"{channel_id}_fig_hm")
+
+    st.markdown("---")
+
+    # =========================================================================
+    # PART 1-B. 지역 분포 분석 (주소 데이터가 있는 '지역' 채널 전용)
+    # =========================================================================
+    st.markdown("### 📍 지역 분포 분석 (Regional Analysis)")
+    region_stats = compute_channel_region_stats(df, top_n=15)
+    if region_stats.empty:
+        st.info(
+            "이 채널에는 주소 데이터가 없어 지역 분석을 표시할 수 없습니다. "
+            "채널 선택에서 **📍 지역**을 선택하면 시/구 단위 지역 분포를 확인할 수 있습니다."
+        )
+    else:
+        st.caption(_region_summary_text(region_stats))
+        region_col_chart, region_col_table = st.columns([3, 2])
+        with region_col_chart:
+            region_chart_df = region_stats.reset_index().sort_values("장소수")
+            fig_region = px.bar(
+                region_chart_df,
+                x="장소수",
+                y="지역",
+                orientation="h",
+                color="장소수",
+                color_continuous_scale=["#d9f7e7", "#03C75A"],
+                title="지역(시/구)별 검색 결과 장소 분포",
+                labels={"장소수": "장소 수", "지역": "지역"},
+                template="plotly_white",
+            )
+            fig_region.update_layout(height=380, coloraxis_showscale=False, margin=dict(l=10, r=10, t=40, b=10))
+            st.plotly_chart(fig_region, width="stretch", key=f"{channel_id}_fig_region")
+        with region_col_table:
+            st.dataframe(region_stats, width="stretch", height=380)
 
     st.markdown("---")
 

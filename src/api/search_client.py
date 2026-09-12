@@ -4,7 +4,7 @@ from typing import Any
 import pandas as pd
 from src.api.base import BaseApiClient, NaverApiError
 from src.config.settings import SEARCH_CHANNELS, ChannelConfig, get_channel_endpoint
-from src.utils.text_cleaner import clean_html_tags, parse_naver_pubdate
+from src.utils.text_cleaner import clean_html_tags, extract_domain, parse_naver_pubdate
 
 # 검색어 x 채널 조합을 동시에 호출할 때 사용할 최대 워커 수
 MAX_FETCH_WORKERS = 8
@@ -153,7 +153,8 @@ class SearchApiClient(BaseApiClient):
         elif channel_id == "local":
             author = item.get("category", "")
         elif channel_id == "news":
-            author = item.get("originallink", "")
+            # 네이버 뉴스 API는 언론사명을 별도로 주지 않으므로 원문 링크의 도메인을 언론사 대용으로 사용합니다.
+            author = extract_domain(item.get("originallink") or item.get("link") or "")
 
         extra: dict[str, Any] = {}
         if channel_id == "image":

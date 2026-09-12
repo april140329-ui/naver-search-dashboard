@@ -5,6 +5,7 @@ import plotly.express as px
 import streamlit as st
 
 from src.analysis.text_mining import extract_top_words
+from src.components.sentiment_view import render_sentiment_section
 from src.config.settings import SEARCH_CHANNELS
 
 
@@ -62,7 +63,7 @@ def render_text_insights_section(df_items: pd.DataFrame, keywords: list[str]) ->
         st.info("텍스트 분석을 위한 수집 표본이 없습니다.")
         return
 
-    tab_words, tab_compare = st.tabs(["연관어 분석", "검색어 비교"])
+    tab_words, tab_compare, tab_sentiment = st.tabs(["연관어 분석", "검색어 비교", "여론/감성 분석"])
     with tab_words:
         filter1, filter2, filter3, filter4 = st.columns([1, 1, 1, 1])
         with filter1:
@@ -131,3 +132,6 @@ def render_text_insights_section(df_items: pd.DataFrame, keywords: list[str]) ->
             st.plotly_chart(chart, width="stretch")
         else:
             st.info("비교할 단어가 없습니다.")
+
+    with tab_sentiment:
+        render_sentiment_section(df_items, keywords)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import html
 import re
+from urllib.parse import urlparse
 
 # 네이버 API는 검색 일치 단어에 <b>, </b> 태그를 포함하여 반환함
 HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
@@ -16,6 +17,14 @@ def clean_html_tags(text: str | None) -> str:
     cleaned = HTML_TAG_PATTERN.sub("", unescaped)
     # 3. 불필요한 연속 공백 축약
     return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def extract_domain(url: str | None) -> str:
+    """URL에서 언론사/출처 대용으로 쓸 수 있는 도메인(www. 제외)만 추출합니다."""
+    if not url:
+        return ""
+    netloc = urlparse(url).netloc
+    return netloc[4:] if netloc.startswith("www.") else netloc
 
 
 def parse_naver_pubdate(pub_date_str: str | None) -> str:

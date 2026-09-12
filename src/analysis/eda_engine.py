@@ -4,6 +4,7 @@ from typing import Any
 import pandas as pd
 from src.analysis.text_mining import tokenize_weighted_text
 from src.config.settings import SEARCH_CHANNELS
+from src.utils.text_cleaner import clean_html_tags
 
 DAYS_OF_WEEK = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
 
@@ -204,6 +205,66 @@ def compute_channel_crosstab_source(df: pd.DataFrame, top_n: int = 12) -> pd.Dat
     ct = pd.crosstab(sub_df["작성출처"], sub_df["keyword"], margins=True, margins_name="합계")
     ct = ct.sort_values(by="합계", ascending=False)
     return ct
+
+
+def compute_channel_source_ranking(df: pd.DataFrame, top_n: int = 15) -> pd.DataFrame:
+    """[출처 Top N 랭킹] 주요 출처/언론사별 문서 건수와 전체 대비 비중을 랭킹 리스트로 정리합니다."""
+    if df.empty or "작성출처" not in df.columns:
+        return pd.DataFrame()
+
+    sub = df[df["작성출처"] != "기타/미상"]
+    if sub.empty:
+        sub = df
+
+    total = len(df)
+    counts = sub["작성출처"].value_counts().head(top_n)
+    rows = [
+        {
+            "순위": rank,
+            "출처": source,
+            "문서건수": int(count),
+            "비중(%)": round(count / total * 100, 1) if total else 0.0,
+        }
+        for rank, (source, count) in enumerate(counts.items(), start=1)
+    ]
+    return pd.DataFrame(rows).set_index("순위")
+
+
+def compute_channel_region_stats(df: pd.DataFrame, top_n: int = 15) -> pd.DataFrame:
+    """[지역 분석] '지역' 채널 결과의 주소에서 시/구 단위 지역명을 추출해 분포를 집계합니다.
+
+    다른 채널은 주소 데이터가 없어 빈 DataFrame을 반환하며, 이 경우 UI에서 안내만 표시합니다.
+    """
+    if df.empty or "extra" not in df.columns:
+        return pd.DataFrame()
+
+    def _region_of(extra: Any) -> str:
+        info = extra if isinstance(extra, dict) else {}
+        raw_address = info.get("roadAddress") or info.get("address") or ""
+        address = clean_html_tags(str(raw_address))
+        if not address:
+            return ""
+        parts = address.split()
+        # 대개 "시/도 + 시/군/구" 두 토큰까지가 지역 단위로 의미 있는 구간입니다.
+        return " ".join(parts[:2]) if len(parts) >= 2 else parts[0]
+
+    regions = df["extra"].apply(_region_of)
+    regions = regions[regions != ""]
+    if regions.empty:
+        return pd.DataFrame()
+
+    total = len(regions)
+    counts = regions.value_counts().head(top_n)
+    rows = [
+        {
+            "순위": rank,
+            "지역": region,
+            "장소수": int(count),
+            "비중(%)": round(count / total * 100, 1),
+        }
+        for rank, (region, count) in enumerate(counts.items(), start=1)
+    ]
+    return pd.DataFrame(rows).set_index("순위")
 
 
 def compute_channel_crosstab_dow(df: pd.DataFrame) -> pd.DataFrame:
